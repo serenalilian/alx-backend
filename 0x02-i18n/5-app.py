@@ -1,15 +1,26 @@
 #!/usr/bin/env python3
+
 """
-Flask app
+5. Basic Flask app
 """
-from flask import (
-    Flask,
-    render_template,
-    request,
-    g
-)
+
+from flask import Flask, render_template, request, g
 from flask_babel import Babel
 
+app = Flask(__name__)
+babel = Babel(app)
+
+
+class Config:
+    """
+    Config class.
+    """
+    LANGUAGES = ["en", "fr"]
+    BABEL_DEFAULT_LOCALE = "en"
+    BABEL_DEFAULT_TIMEZONE = "UTC"
+
+
+app.config.from_object(Config)
 
 users = {
     1: {"name": "Balou", "locale": "fr", "timezone": "Europe/Paris"},
@@ -19,58 +30,42 @@ users = {
 }
 
 
-class Config(object):
+def get_user(login_as):
     """
-    Configuration for Babel
+    get_user.
     """
-    LANGUAGES = ["en", "fr"]
-    BABEL_DEFAULT_LOCALE = "en"
-    BABEL_DEFAULT_TIMEZONE = "UTC"
-
-
-app = Flask(__name__)
-app.config.from_object(Config)
-babel = Babel(app)
-
-
-def get_user():
-    """
-    Returns a user dictionary or None if ID value can't be found
-    or if 'login_as' URL parameter was not found
-    """
-    id = request.args.get('login_as', None)
-    if id is not None and int(id) in users.keys():
-        return users.get(int(id))
-    return None
+    try:
+        return users.get(int(login_as))
+    except Exception:
+        return
 
 
 @app.before_request
 def before_request():
     """
-    Add user to flask.g if user is found
+    before_request
     """
-    user = get_user()
-    g.user = user
+    g.user = get_user(request.args.get("login_as"))
 
 
 @babel.localeselector
 def get_locale():
     """
-    Select and return best language match based on supported languages
+    get_locale.
     """
-    loc = request.args.get('locale')
-    if loc in app.config['LANGUAGES']:
-        return loc
+    locale = request.args.get("locale")
+    if locale:
+        return locale
     return request.accept_languages.best_match(app.config['LANGUAGES'])
 
 
-@app.route('/', strict_slashes=False)
-def index() -> str:
+@app.route('/', methods=["GET"], strict_slashes=False)
+def hello():
     """
-    Handles / route
+    hello.
     """
     return render_template('5-index.html')
 
 
 if __name__ == "__main__":
-    app.run(port="5000", host="0.0.0.0", debug=True)
+    app.run(host="0.0.0.0", port="5000")
